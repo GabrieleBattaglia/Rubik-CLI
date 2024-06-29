@@ -1,0 +1,3 @@
+Rubic todo list
+Appunti per la programmazione del cubo di rubic.
+Fare classifica risolutori
