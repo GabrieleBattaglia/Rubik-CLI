@@ -1,6 +1,8 @@
 # Rubik-CLI
 This is my attempt to make an accessible Rubik cube for blind players.
 
+## Se esegui lo script Python, assicurati di avere GBUtils.py nella stessa cartella. Puoi scaricarlo dall'omonimo progetto su GitHub.
+
 # Manuale d'uso di Rubik Accessibile, di Gabriele Battaglia.
 
 Indice.
