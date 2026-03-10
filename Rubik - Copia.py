@@ -2,7 +2,9 @@
 # Data concepimento: giovedi' 19 ottobre 2017
 # Portato su Python3 l'11 ottobre 2022, grazie Gigi per avermi ricordato questo gioco.
 # 29 giugno 2024, pubblicato su GitHub
-import random, time, pickle
+import random
+import time
+import pickle
 from GBUtils import key
 
 #COSTANTI

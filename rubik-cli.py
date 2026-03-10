@@ -6,7 +6,6 @@
 import random
 import time
 import pickle
-import sys
 from GBUtils import key
 # COSTANTI
 VERSIONE = "1.0.3, del 8 maggio 2025" 
