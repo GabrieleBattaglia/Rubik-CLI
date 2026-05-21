@@ -8,7 +8,7 @@ import time
 import pickle
 from GBUtils import key
 # COSTANTI
-VERSIONE = "1.0.3, del 8 maggio 2025" 
+VERSIONE = "1.0.4, del 16 maggio 2026" 
 NOME_FILE_SALVATAGGIO = "rubik.dat"
 NOME_FILE_CLASSIFICA_TXT = "classifica.txt"
 NOME_SCONOSCIUTO = "Sconosciuto"
@@ -182,7 +182,7 @@ def Istruzioni():
             if righe_stampate % 15 == 0 and i < len(righe) - 1:
                 # Assumendo che 'attesa' nella tua key sia in secondi
                 tasto_utente = key(prompt=f"\nPremi spazio per proseguire o ESC per uscire. Pagina {pagina}", attesa=300) 
-                if tasto_utente == chr(27): break
+                if tasto_utente in (chr(27), "esc"): break
                 pagina +=1; righe_stampate = 0
         print(f"\nVersione App: {VERSIONE}, Fine manuale.")
     except FileNotFoundError: print("Attenzione, file README.md mancante.")
@@ -292,7 +292,7 @@ if __name__ == "__main__":
             prompt_str = f"PC {perc_comp:3d}% Mosse {mosse_partita:d}> "
         tasto_cmd = key(prompt=prompt_str, attesa=900).lower()
 
-        if not partita_in_corso and tasto_cmd and tasto_cmd not in "nmhcq" + chr(27):
+        if not partita_in_corso and tasto_cmd and tasto_cmd not in "nmhcq" and tasto_cmd not in (chr(27), "esc"):
             print("Nessuna partita in corso. (N)uova partita, (H)elp, (C)lassifica o (ESC) per uscire."); continue
 
         if tasto_cmd: # Solo se un tasto e' stato premuto (key non ha fatto timeout ritornando stringa vuota)
@@ -301,7 +301,7 @@ if __name__ == "__main__":
 
             if tasto_cmd == "m": Menu()
             elif tasto_cmd == "b": braille_prompt = not braille_prompt; print(f"Prompt Braille: {'ON' if braille_prompt else 'OFF'}.")
-            elif tasto_cmd == chr(27): break # ESC per uscire dal loop principale
+            elif tasto_cmd in (chr(27), "esc"): break # ESC per uscire dal loop principale
             
             elif tasto_cmd in "123":
                 if not partita_in_corso: print("Nessuna partita in corso."); continue
@@ -310,10 +310,10 @@ if __name__ == "__main__":
                 prompt_dir = f"\nSposta fila/colonna {idx_rc+1}: (I)Alto (M)Basso (J)Sinistra (K)Destra? (ESC annulla)"
                 while True:
                     temp_input_dir = key(prompt=prompt_dir, attesa=99999).lower() # Forza attesa bloccante
-                    if temp_input_dir in "ijkm" + chr(27):
+                    if temp_input_dir in "ijkm" or temp_input_dir in (chr(27), "esc"):
                         direzione_tasto_scelta = temp_input_dir
                         break
-                if direzione_tasto_scelta == chr(27): 
+                if direzione_tasto_scelta in (chr(27), "esc"): 
                     continue 
                 
                 map_direzioni_rotazioni = { 

@@ -8,7 +8,7 @@ import pickle
 from GBUtils import key
 
 #COSTANTI
-VERSIONE = "0.9.0, del 13 novembre 2022, di Gabriele Battaglia"
+VERSIONE = "0.9.1, del 16 maggio 2026, di Gabriele Battaglia"
 
 #Funzioni
 def Carica():
@@ -57,7 +57,7 @@ def Istruzioni():
    cr += 1
    if cr % 15 == 0:
     tasto = key(900, "\nPremi spazio per proseguire o ESC per uscire dalla guida. Pagina "+str(int(cr/10)))
-    if tasto == chr(27): break
+    if tasto in (chr(27), "esc"): break
   print("\nVersione App: " + VERSIONE + ", Fine manuale.")
  except IOError:
   print("Attenzione, file della guida, mancante.\n\tRichiedere il file all'autore dell'App.")
@@ -263,7 +263,7 @@ while True:
    else:
     print("Visualizzazione del cubo su display Braille: attivato.")
     braille=True
-  elif tasto == chr(27): break
+  elif tasto in (chr(27), "esc"): break
   elif tasto in "123":
    q = int(tasto) - 1; tasto = " "
    while tasto not in "jikm":
