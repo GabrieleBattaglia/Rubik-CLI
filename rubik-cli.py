@@ -658,7 +658,7 @@ def Menu():
     print(" - (8) Ruota Faccia Posteriore Antiorario.")
     print(" - (9) Ruota Faccia Posteriore Orario.")
     print(
-        " - (F) o (A) Faccia Anteriore. (S)inistra, (D)estra, (E)alto, (X)basso, (W)posteriore."
+        " - (F) Faccia Anteriore. (S)inistra, (D)estra, (E)alto, (X)basso, (W)posteriore."
     )
     print(
         " - (H) Istruzioni. (M) Menu. (N) Nuova partita. (T) Tempo/Mosse. (C) Classifica."
@@ -883,13 +883,12 @@ if __name__ == "__main__":
                     perc_comp,
                 ) = IniziaNuovaPartita(engine)
 
-            elif tasto_cmd in "sdexawf":
+            elif tasto_cmd in "sdexwf":
                 map_tasti_faccia = {
                     "s": FACCIA_SINISTRA,
                     "d": FACCIA_DESTRA,
                     "e": FACCIA_SUPERIORE,
                     "x": FACCIA_INFERIORE,
-                    "a": FACCIA_ANTERIORE,
                     "f": FACCIA_ANTERIORE,
                     "w": FACCIA_POSTERIORE,
                 }
