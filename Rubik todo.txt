@@ -1,3 +1,7 @@
-Rubic todo list
-Appunti per la programmazione del cubo di rubic.
-Fare classifica risolutori
+Rubik todo list
+Appunti per la programmazione del cubo di Rubik:
+
+[X] Motore geometrico 3D del cubo e rotazioni fisicamente corrette (v1.1.0)
+[X] Salvataggio e gestione classifica risolutori in JSON e TXT (v1.1.0)
+[X] Integrazione audio Acusticator per feedback movimenti, mosse migliorative/peggiorative e vittoria (v1.1.0)
+[X] Prompt Braille ed Accessibilita' avanzata per screen reader (v1.1.0)

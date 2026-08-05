@@ -79,15 +79,15 @@ cosa le si puo' chiedere. Secondo me, il modo migliore di spiegarla e' quello
 di partire dal suo menu'. I dettagli, dove necessario, saranno aggiunti via 
 via che li si incontra. 
 
-L'applicazione puo' essere lanciata scrivendo rubik.py dal prompt dei comandi, 
+L'applicazione puo' essere lanciata scrivendo python rubik-cli.py dal prompt dei comandi, 
 se sei in possesso dei sorgenti, oppure rubik.exe, se hai l'eseguibile. 
 Rubik Accessibile, come prima cosa, controllera' nella propria cartella: se 
-trovera' il file rubik.dat, lo carichera' e ti consentira' di riprendere la 
+trovera' il file rubik.json (o il formato legacy rubik.dat), lo carichera' e ti consentira' di riprendere la 
 partita in corso, in caso contrario invece, inizializzera' un cubo tutto nuovo 
 fiammante e presentera' a schermo il prompt di attesa comandi. Direi che 
 questo e' il tuo caso, se non hai mai lanciato l'app, prima. 
 Ricordati che, qual'ora volessi tornare a questa condizione iniziale, ti 
-bastera' cancellare dalla cartella di Rubik, il file con estensione ".dat". 
+bastera' cancellare dalla cartella di Rubik, il file con estensione ".json" (o ".dat"). 
 
 ### 3.1. Il prompt dei comandi.
 Il prompt dei comandi e' una riga di testo, generalmente una frase, una 
