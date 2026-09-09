@@ -1,0 +1,173 @@
+Analisi del codice, revisione 1
+Progetto: rubik-cli, Rubik Accessibile, il cubo di Rubik da tastiera
+Versione analizzata: 1.2.0 del 5 agosto 2026
+Revisione: 1
+Data: 2026-09-07
+Analisi eseguita da: ClaudIA, Claude Opus 5 in modalita' auto
+Autori del progetto: Gabriele Battaglia (IZ4APU) & ClaudIA
+Nota sul metodo
+Questa e' la sola analisi, senza correzioni: il codice non e' stato toccato. Secondo il punto 2.6 del documento di refactoring le correzioni si applicano dopo, una alla volta, con l'approvazione di Gabriele. La riga di rubik-cli nella tabella al punto 6 resta a revisione 0 finche' il rapporto non si e' svuotato e la nuova versione non e' stata pubblicata.
+1. File esaminati
+rubik-cli.py, 1014 righe, l'intera applicazione: motore geometrico, persistenza, classifica, audio e ciclo di gioco.
+README.md, 34823 byte, che fa anche da manuale mostrato dentro il gioco.
+Rubik todo.txt, 8 righe, tutte spuntate.
+rubik.json, il salvataggio corrente, non versionato perche' il .gitignore esclude i json.
+rubik.dat, il vecchio salvataggio pickle dell'11 ottobre 2022, non versionato ma presente sul disco e ancora usato dal codice come ripiego.
+.gitignore, 4 righe.
+LICENSE.
+File di contorno assenti e attesi dallo standard del parco software: CHANGELOG, requirements.txt, file .spec per PyInstaller, zip_maker.py.
+2. Issue aperte trovate su GitHub
+Nessuna. Il repository GabrieleBattaglia/Rubik-CLI non ha issue aperte, quindi nessun rilievo di questo rapporto e' gia' registrato altrove e nessuna segnalazione precedente viene qui confermata o smentita. Il file Rubik todo.txt contiene quattro voci, tutte marcate come fatte e tutte attribuite alla versione 1.1.0: secondo il punto 2.7.1 un file di lavoro si svuota man mano, e quando e' vuoto si cancella. Vedi il rilievo 15.
+3. Rilievi in ordine di gravita' decrescente
+3.1 Rilievi critici
+Rilievo 1
+Gravita': critico
+Categoria: logica
+File e riga: rubik-cli.py:186, 188, 213, 215, 240, 242, 255, 257, 270, 272, 289 e 291
+Problema: tutte e sei le rotazioni di faccia cominciano costruendo un dizionario di comodo che associa a ogni identificativo di faccia la griglia della faccia stessa, e poi scrivono, per esempio, f di FACCIA ANTERIORE uguale al risultato della rotazione oraria. Quell'assegnazione, pero', sostituisce la voce dentro il dizionario di comodo e non tocca la griglia dell'oggetto Faccia, che resta quella di prima. Le righe successive, invece, modificano le griglie sul posto, per esempio scrivendo dentro una riga o una casella, e quelle funzionano. Il risultato e' che la corona di dodici caselle attorno alla faccia gira, mentre le otto caselle della faccia che si sta ruotando restano ferme.
+Verifica: riprodotto in laboratorio. Marcando le caselle una per una e applicando la rotazione oraria della faccia anteriore, la faccia resta identica a prima invece di ruotare. Contando le caselle che cambiano posto, ogni rotazione ne muove dodici invece delle venti attese, cioe' otto della faccia piu' dodici della corona, e questo vale per tutte e sei le facce.
+Impatto per l'utente: non e' un cubo di Rubik. E' un altro rompicapo, che gli si somiglia, ma su cui nessuna delle tecniche note funziona e in cui una mossa non ha l'effetto che il manuale le attribuisce. Chi sa risolvere il cubo vero non riesce a risolvere questo, e chi impara su questo impara qualcosa che sul cubo vero non serve. Il motore geometrico, che il todo dichiara fatto e fisicamente corretto nella 1.1.0, non lo e'.
+Correzione proposta: assegnare la griglia ruotata all'oggetto, cioe' scrivere dentro l'attributo y della Faccia invece che dentro il dizionario di comodo. Il dizionario di comodo, a quel punto, e' comodo solo per la corona: converrebbe togliere del tutto quell'intermediario e lavorare sempre sugli oggetti, cosi' l'errore non puo' ripresentarsi. Dopo la correzione tutte le rotazioni vanno riprovate con la stessa misura delle venti caselle mosse.
+Rilievo 2
+Gravita': critico
+Categoria: logica
+File e riga: rubik-cli.py:212, 218, 219, 220, 221, 222, 223, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236 e 237
+Problema: la rotazione della faccia posteriore non e' una permutazione di ordine quattro. Girando attorno alla corona, il verso di lettura viene invertito tre volte su quattro passaggi, e non due o quattro: il risultato e' che una casella, dopo quattro rotazioni, torna sulla faccia di partenza ma nel punto opposto, e servono otto rotazioni per riportarla dov'era.
+Verifica: riprodotto in laboratorio. Applicando quattro volte la rotazione oraria della faccia posteriore il cubo non torna allo stato iniziale, mentre per tutte le altre sei rotazioni ci torna. Poiche' la rotazione antioraria e' realizzata come tre rotazioni orarie, applicare l'oraria e poi l'antioraria non riporta il cubo allo stato di partenza: e' l'unica delle sette rotazioni per cui questo accade.
+Impatto per l'utente: i comandi 8 e 9 non sono l'uno l'inverso dell'altro. Chi preme 9 per sbaglio e poi preme 8 per rimediare peggiora la situazione invece di ripararla, e non ha nessun modo di accorgersene se non ricontando le facce. Per annullare una rotazione posteriore oraria servono sette rotazioni orarie, che nessuno immagina. Il rimescolamento automatico usa questa rotazione, quindi ogni partita nasce da un mescolamento che contiene mosse di questo tipo.
+Correzione proposta: correggere il verso di lettura di uno dei quattro passaggi della corona, e poi verificare con la stessa prova di laboratorio che quattro rotazioni riportino il cubo allo stato iniziale. Vale la pena scrivere quella prova come test automatico per tutte e sette le rotazioni: e' poco codice e coglie subito gli errori di questo tipo, che a occhio non si vedono.
+3.2 Rilievi alti
+Rilievo 3
+Gravita': alto
+Categoria: fragilita'
+File e riga: rubik-cli.py:436, 474, 475, 478, 481, 490, 511, 512, 515 e con effetto su 1004
+Problema: CaricaPartita prova tre strade in cascata e nessuna delle prime due, fallendo, ferma la successiva. Se la lettura di rubik.json solleva una qualunque eccezione, e la cattura e' generica quindi le prende tutte, il programma passa al ripiego e legge rubik.dat, che e' il salvataggio pickle dell'ottobre 2022. Se anche quello fallisce, inizializza un cubo nuovo. In tutti e tre i casi il programma prosegue e, all'uscita, SalvaPartita riscrive rubik.json con cio' che ha in memoria.
+Impatto per l'utente: una partita in corso puo' essere sostituita, senza che nessuno lo chieda, o dalla partita di quattro anni fa conservata nel pickle, o da un cubo nuovo. In piu' pickle, al caricamento, esegue il codice che il file contiene: non e' un formato di dati.
+Correzione proposta: distinguere il salvataggio assente da quello illeggibile, fermarsi e dirlo quando la lettura fallisce, e non scrivere niente finche' l'utente non ha deciso. Il ripiego sul pickle deve valere soltanto quando il json non esiste affatto, e una volta migrato il pickle andrebbe rinominato, perche' oggi resta li' pronto a rientrare in gioco.
+Rilievo 4
+Gravita': alto
+Categoria: fragilita'
+File e riga: rubik-cli.py:17, 18, 19, 20 e 576
+Problema: i quattro nomi di file del salvataggio e della classifica sono relativi, e cosi' e' anche il README.md che fa da manuale. Tutti vengono quindi cercati e scritti nella directory di lavoro corrente e non accanto al programma. Il punto 3.1 elenca la dipendenza dalla directory corrente fra le fragilita' da cercare.
+Impatto per l'utente: avviando il gioco da un'altra cartella non si trova nessuna partita, la classifica appare vuota e il manuale risponde che il file README.md manca. Da eseguibile compilato, che questo progetto non ha ancora ma avra', sarebbe il caso ordinario.
+Correzione proposta: costruire i percorsi a partire dalla cartella del sorgente o dell'eseguibile.
+Rilievo 5
+Gravita': alto
+Categoria: logica
+File e riga: rubik-cli.py:396, 603, 626, 627, 628 e 631
+Problema: il rimescolamento iniziale applica un numero casuale di mosse compreso fra quaranta e duemila, e la classifica ordina le partite per tempo, con le mosse come solo criterio di parita'. Due partite in classifica non sono quindi confrontabili fra loro: chi ha ricevuto un cubo mescolato quaranta volte e chi lo ha ricevuto mescolato duemila hanno affrontato due problemi diversi.
+Impatto per l'utente: la classifica non misura la bravura ma la fortuna del sorteggio iniziale. Il numero di mescolamenti viene detto all'inizio della partita, ma non viene salvato da nessuna parte e non compare in classifica, quindi non c'e' nemmeno modo di sapere a posteriori quanto fosse difficile una partita.
+Correzione proposta: da decidere con Gabriele. Le strade sono tre: fissare il numero di mescolamenti, cosi' le partite sono confrontabili; oppure salvarlo insieme al risultato e mostrarlo in classifica; oppure tenere classifiche separate per fasce di difficolta'. In ogni caso il dato va conservato.
+Rilievo 6
+Gravita': alto
+Categoria: fragilita'
+File e riga: rubik-cli.py:115, 385, 405, 424, 474, 511, 561, 594 e 555
+Problema: otto blocchi except Exception catturano qualunque cosa e la riducono a un messaggio, e un nono, alla riga 115, non stampa nemmeno quello. Ruff li segnala tutti, con BLE001 e con S110. Il piu' dannoso e' quello della riga 474, che innesca il rilievo 3. In piu' SalvaPartita apre il file in scrittura, il che lo tronca subito, senza scrittura su file temporaneo con sostituzione atomica e senza conservare nessuna copia della versione precedente; lo stesso vale per i due file della classifica.
+Impatto per l'utente: la causa vera di un guasto non arriva mai a chi potrebbe capirla, e un'interruzione durante il salvataggio lascia un file troncato che al riavvio successivo innesca il rilievo 3.
+Correzione proposta: catturare le eccezioni che si sanno nominare, scrivere su file temporaneo e sostituire con os.replace, e conservare la versione precedente come copia .bak.
+3.3 Rilievi medi
+Rilievo 7
+Gravita': medio
+Categoria: logica
+File e riga: rubik-cli.py:376, 378, 432, 450, 453, 454, 491, 492 e 550
+Problema: la classifica esiste in due copie. Una sta nel proprio file classifica.json, l'altra dentro rubik.json, perche' SalvaPartita la include fra i dati della partita. Al caricamento vince la prima e la seconda si usa solo se la prima manca. Le due copie possono divergere, e infatti divergono ogni volta che si vince una partita e poi si esce senza salvare.
+Impatto per l'utente: la classifica mostrata puo' non essere quella vera, e non c'e' modo di sapere quale delle due lo sia.
+Correzione proposta: tenere la classifica in un posto solo, cioe' nel suo file, e toglierla dai dati della partita.
+Rilievo 8
+Gravita': medio
+Categoria: regole generali
+File e riga: rubik-cli.py:411, 413, 414, 420, 422, 675, 676, 677, 681 e 683
+Problema: la classifica, sia quella mostrata a schermo sia quella scritta nel file di testo, e' costruita come una tabella allineata a colonne di larghezza fissa, con due righe di quaranta trattini e un titolo racchiuso fra tripli trattini. Il punto 3.4 vieta i separatori grafici e chiede che le tabelle siano rese in forma discorsiva o con separatori leggibili.
+Impatto per l'utente: NVDA legge quaranta trattini uno per uno, due volte, e poi legge righe in cui i valori sono separati da corse di spazi che non dicono a quale colonna appartengono. E' l'unica parte del programma che non e' stata pensata per chi ascolta, ed e' anche il premio della partita.
+Correzione proposta: scrivere ogni voce come una frase, per esempio primo, Gabriele, centoventi mosse, otto minuti e dodici secondi, e togliere le righe di trattini.
+Rilievo 9
+Gravita': medio
+Categoria: logica
+File e riga: rubik-cli.py:748, 796 e 807
+Problema: la validazione dei tasti si fa con l'operatore in applicato a una stringa, per esempio tasto in uno due tre. L'operatore e' vero anche per la stringa vuota, che e' sottostringa di qualunque cosa, e la stringa vuota e' proprio cio' che key restituisce alla scadenza dell'attesa. Alla riga 807, in particolare, la scadenza dei 99999 secondi fa uscire dal ciclo di scelta della direzione con una risposta vuota, che poi non corrisponde a nessuna direzione e fa perdere il comando in silenzio.
+Impatto per l'utente: qui il danno e' piccolo, perche' la mossa semplicemente non viene eseguita. L'idioma pero' e' lo stesso che in ChessREG cancella un dato, quindi vale la pena toglierlo ovunque.
+Correzione proposta: verificare l'appartenenza a un insieme di caratteri, non con l'operatore in su una stringa, e trattare la stringa vuota come risposta mancante.
+Rilievo 10
+Gravita': medio
+Categoria: DRY
+File e riga: rubik-cli.py:573, 576, 577, 578, 579, 582, 583, 584, 587, 589 e 590
+Problema: Istruzioni riscrive un impaginatore: legge il README, lo stampa quindici righe per volta, conta le pagine e aspetta un tasto. GBUtils ha manuale, che fa esattamente questo, sa risolvere il percorso del file anche da eseguibile congelato e ha gia' il numero di righe per pagina fra i parametri.
+Impatto per l'utente: il manuale ha un comportamento diverso da quello di tutti gli altri programmi di Gabriele, e il percorso relativo del rilievo 4 lo rende introvabile quando il gioco si avvia da un'altra cartella.
+Correzione proposta: sostituire Istruzioni con una chiamata a manuale.
+Rilievo 11
+Gravita': medio
+Categoria: DRY
+File e riga: rubik-cli.py:13, 636, 649, 944 e assenze diffuse
+Problema: dal parco software il gioco importa Acusticator e key, e li usa bene. Il nome del giocatore, pero', si chiede con input nudo, in due punti, mentre dgt valida lunghezza e limiti; il menu e' una stampa a mano seguita da una catena di elif, mentre menu di GBUtils fa questo di mestiere; non c'e' nessun controllo aggiornamenti, benche' gestisci_aggiornamento esista; non c'e' ne' zip_maker.py ne' il file .spec, quindi il gioco non e' ancora distribuibile come gli altri.
+Impatto per l'utente: chi lo usa deve ricordare due abitudini invece di una, e non esiste una release da scaricare.
+Correzione proposta: passare a dgt e a menu, e aggiungere zip_maker.py e il controllo aggiornamenti quando si decidera' di pubblicare una release.
+Rilievo 12
+Gravita': medio
+Categoria: ottimizzazione
+File e riga: rubik-cli.py:64, 431, 686 e da 687 a 1013
+Problema: il programma non ha nessuna funzione main: dalla riga 687 alla 1013, cioe' trecentoventisette righe, tutto il ciclo di gioco sta dentro la guardia __name__, a livello di modulo, insieme alle variabili di stato. L'audio si accende e si spegne tramite una variabile globale mutabile. Il punto 3.5 chiede di non mescolare le responsabilita' e il punto 3.1 elenca gli stati globali mutabili fra le fragilita'.
+Impatto per l'utente: nessuno diretto. Per chi ci mette mano, pero', il gioco non e' importabile, non e' collaudabile per parti, e infatti proprio l'assenza di prove automatiche ha lasciato passare i due rilievi critici.
+Correzione proposta: raccogliere il ciclo in una funzione main e portare lo stato dentro un oggetto o un dizionario passato per argomento. Il motore, che e' gia' una classe pulita, e' la prova che si puo' fare.
+Rilievo 13
+Gravita': medio
+Categoria: regole generali
+File e riga: rubik-cli.py:1, 2, 3, 4, 5 e 16
+Problema: l'intestazione elenca cinque date ma non ha la riga degli autori nel formato prescritto dal punto 3.4, e attribuisce il lavoro al solo Gabriele Battaglia benche' il restyling del 2026 sia stato fatto con l'assistenza. La costante VERSIONE contiene la versione e la data nella stessa stringa. Non esiste changelog: le novita' stanno dentro il README.
+Impatto per l'utente: chi scarica il gioco non trova un elenco delle novita' separato dal manuale, che e' lungo trentaquattromila caratteri.
+Correzione proposta: separare VERSIONE e RELEASE_DATE, scrivere la riga degli autori nel formato del parco software ed estrarre dal README la cronologia delle versioni.
+Rilievo 14
+Gravita': medio
+Categoria: fragilita'
+File e riga: rubik-cli.py:9, 18, 480, 481 e 490
+Problema: il ripiego su pickle non verifica niente di cio' che legge. Scompatta la tupla in sei variabili e assegna direttamente il risultato a engine.facce, dando per certo che contenga oggetti Faccia della versione di oggi. Un pickle scritto da una versione precedente, con una classe diversa o con un numero diverso di elementi, solleva un'eccezione che finisce nella cattura generica del rilievo 6, oppure, peggio, passa e lascia il motore in uno stato incoerente.
+Impatto per l'utente: il gioco puo' partire con un cubo che non e' un cubo, e il primo comando che lo tocca si chiude con una traccia di stack.
+Correzione proposta: validare cio' che si carica, da entrambe le fonti, verificando che ci siano sei facce, che ogni griglia sia tre per tre e che i colori siano fra quelli previsti.
+Rilievo 15
+Gravita': medio
+Categoria: regole generali
+File e riga: Rubik todo.txt
+Problema: il file di appunti contiene quattro voci, tutte marcate come fatte e tutte attribuite alla 1.1.0, mentre la versione corrente e' la 1.2.0. Secondo il punto 2.7.1 il TODO ospita le idee ancora vaghe e si svuota man mano che diventano lavoro; cio' che e' stato fatto sta nel changelog, non li'.
+Impatto per l'utente: nessuno. Per il metodo, un file di lavoro che non si svuota smette di dire qualcosa.
+Correzione proposta: spostare le quattro voci nel changelog che il rilievo 13 propone di aprire, e cancellare il file.
+3.4 Rilievi bassi
+Rilievo 16
+Gravita': basso
+Categoria: ottimizzazione
+File e riga: rubik-cli.py:916
+Problema: la riga assegna azione_compiuta a una variabile mossa_eseguita usando l'operatore tricheco, e quella variabile non viene poi usata da nessuna parte. E' un'assegnazione inutile dentro una condizione, che rende la riga piu' difficile da leggere senza aggiungere niente.
+Impatto per l'utente: nessuno.
+Correzione proposta: scrivere semplicemente se azione compiuta.
+Rilievo 17
+Gravita': basso
+Categoria: logica
+File e riga: rubik-cli.py:748
+Problema: fra i tasti ammessi quando non c'e' nessuna partita in corso compare la q, ma nel ciclo non esiste nessun ramo che gestisca la q. Premendola non succede niente e non arriva nessun messaggio.
+Impatto per l'utente: chi prova a uscire con la q, che in molti programmi e' il tasto per uscire, non ottiene ne' l'uscita ne' una spiegazione.
+Correzione proposta: togliere la q dall'elenco, oppure trattarla come Escape, che e' probabilmente cio' che qualcuno aveva in mente.
+Rilievo 18
+Gravita': basso
+Categoria: logica
+File e riga: rubik-cli.py:456, 918 e 928
+Problema: la vittoria si verifica soltanto dopo una mossa. Se una partita salvata viene ricaricata gia' risolta al cento per cento, il programma non se ne accorge e resta in attesa di comandi.
+Impatto per l'utente: caso remoto, perche' la vittoria di solito viene riconosciuta subito. Puo' capitare se il programma si e' chiuso male proprio sull'ultima mossa.
+Correzione proposta: verificare la percentuale anche subito dopo il caricamento.
+Rilievo 19
+Gravita': basso
+Categoria: regole generali
+File e riga: rubik-cli.py:636 e 944
+Problema: il nome del giocatore viene troncato a dodici caratteri con una fetta, senza che nessuno lo dica. Chi si chiama con un nome piu' lungo lo ritrova tagliato in classifica.
+Impatto per l'utente: piccolo ma sgradevole, e chi non vede lo schermo se ne accorge solo leggendo la classifica.
+Correzione proposta: usare dgt con smax uguale a dodici, che avvisa quando taglia, come chiede il rilievo 11.
+4. Riepilogo
+Rilievi totali: 19. Critici 2, alti 4, medi 9, bassi 4.
+Cio' che e' solido: il prompt braille e' la cosa meglio riuscita del programma. La riga che si riscrive fra due ritorni a capo, con percentuale, mosse, lettera della faccia e le tre righe di cifre fra parentesi, e' esattamente lo strumento giusto per chi legge con il display, sta dentro i quaranta caratteri e non lascia scorrere nulla: e' un modello da imitare negli altri progetti. La corrispondenza fra colori e cifre da uno a sei e' la scelta giusta, perche' un colore detto a voce e' lungo e una cifra no. Il riscontro sonoro differenziato in base alla variazione della percentuale, nota alta se si migliora, nota bassa se si peggiora, click se non cambia niente, e' un'idea eccellente e vale piu' di qualunque mappa: e' informazione continua che non costa parole. La struttura del salvataggio in JSON con to_dict e from_dict e' pulita, e la classe Faccia e' ben separata. Il messaggio che ricorda i comandi disponibili quando non c'e' partita in corso e' una cortesia ben fatta.
+Quadro d'insieme: rubik-cli e' un progetto con un'ottima interfaccia e un motore rotto. I due rilievi critici non sono difetti di contorno: dicono che il rompicapo non e' il cubo di Rubik. Il primo lascia ferme le otto caselle della faccia che si ruota, il secondo rende la rotazione posteriore non annullabile con il comando che dovrebbe annullarla. Poiche' il todo dichiara il motore geometrico fatto e fisicamente corretto dalla 1.1.0, e' probabile che nessuno lo abbia mai verificato con una misura: entrambi i difetti si vedono in tre righe di prova e nessuno dei due si vede giocando, perche' il cubo continua a sembrare un cubo. Prima di ogni altra cosa vanno corretti quelli, e va scritta la prova che li avrebbe colti.
+5. Ordine di lavorazione proposto
+Primo blocco, il motore: rilievi 1 e 2, con le prove automatiche che verificano, per tutte e sette le rotazioni, che si muovano venti caselle e che quattro rotazioni riportino il cubo al punto di partenza.
+Secondo blocco, la sicurezza del salvataggio: rilievi 3, 4, 6 e 14.
+Terzo blocco, la classifica: rilievi 5, 7 e 8.
+Quarto blocco, la forma e le regole: rilievi 9, 10, 11, 13, 15, 16, 17, 18 e 19.
+Quinto blocco, la struttura: rilievo 12, che conviene fare dopo aver scritto le prove del primo blocco, perche' sono quelle a dire se il riordino ha rotto qualcosa.
+Da decidere con Gabriele prima di toccarlo: rilievo 5, che cosa deve misurare la classifica.
+6. Prove che richiedono Gabriele
+Nessuna prova interattiva e' stata messa in collaudo.txt in questa fase, perche' il programma non e' stato modificato e i due rilievi critici sono stati verificati in laboratorio senza bisogno di orecchie ne' di tastiera. Quando il motore sara' corretto servira' pero' una prova che solo Gabriele puo' fare: giocare una partita vera e dire se il cubo, adesso, si comporta come si aspetta. E servira' l'ascolto del riscontro sonoro delle mosse, per verificare che le tre note si distinguano bene una dall'altra durante il gioco veloce.
